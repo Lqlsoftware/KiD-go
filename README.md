@@ -1,3 +1,3 @@
 # KiD
-Key individual Database
-A Highperformance Key-Value Database.
+Key individual Database.
+A High-performance Key-Value Database.
