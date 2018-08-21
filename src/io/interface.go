@@ -1,7 +1,7 @@
 package io
 
-type Base struct {}
+type IO struct {}
 
-func (base *Base)Write(){}
+func (io *IO)Write(){}
 
-func (base *Base)Read(){}
+func (io *IO)Read(){}
