@@ -26,20 +26,13 @@ type Node struct {
 	Value 	*MapData
 }
 
-// Generate a new Tree with a key-value
-func NewTree(index uint8, key MapKey, value *MapData) *RBTree {
-	var root = &Node{
-		color:	BLACK,
-		Left:	nil,
-		Right: 	nil,
-		Key:	key,
-		Value: 	value,
-	}
+// Generate a new Tree
+func NewTree(index uint8) *RBTree {
 	var rbTree = &RBTree{
-		Root: 	root,
-		MLeft:	root,
-		MRight:	root,
-		Size:	1,
+		Root: 	nil,
+		MLeft:	nil,
+		MRight:	nil,
+		Size:	0,
 		Index:	index,
 	}
 	return rbTree
