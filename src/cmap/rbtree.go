@@ -9,31 +9,33 @@ const (
 
 // Red-Black Binary Tree
 type RBTree struct {
-	Root	*Node
-	MLeft	*Node
-	MRight	*Node
-	Size 	uint32
-	Index	uint8
+	root   *treeNode
+	mLeft  *treeNode
+	mRight *treeNode
+	// attributes
+	Size   uint32
+	Index  uint8
 }
 
-// Red-Black Binary Tree Node
-type Node struct {
-	color 	COLOR
-	Father	*Node
-	Left 	*Node
-	Right	*Node
-	Key 	MapKey
-	Value 	*MapData
+// Red-Black Binary Tree treeNode
+type treeNode struct {
+	color  COLOR
+	father *treeNode
+	left   *treeNode
+	right  *treeNode
+	// key & data
+	Key    MapKey
+	Value  *MapData
 }
 
 // Generate a new Tree
 func NewTree(index uint8) *RBTree {
 	var rbTree = &RBTree{
-		Root: 	nil,
-		MLeft:	nil,
-		MRight:	nil,
-		Size:	0,
-		Index:	index,
+		root:   nil,
+		mLeft:  nil,
+		mRight: nil,
+		Size:   0,
+		Index:  index,
 	}
 	return rbTree
 }
@@ -41,7 +43,7 @@ func NewTree(index uint8) *RBTree {
 // Put method on RB-Tree with a key and value
 func (rbTree *RBTree)Put(key MapKey, value *MapData) {
 	// curr view tree node
-	curr := rbTree.Root
+	curr := rbTree.root
 	// upstairs tree node
 	prev := curr
 	// find insert position
@@ -54,10 +56,10 @@ func (rbTree *RBTree)Put(key MapKey, value *MapData) {
 			return
 		} else if key < curr.Key {
 			// goto left
-			curr = curr.Left
+			curr = curr.left
 		} else {
 			// goto right
-			curr = curr.Right
+			curr = curr.right
 		}
 	}
 	// insert
@@ -67,7 +69,7 @@ func (rbTree *RBTree)Put(key MapKey, value *MapData) {
 // Get method on RB-Tree with a key
 func (rbTree *RBTree)Get(key MapKey) *MapData {
 	// curr view tree node
-	curr := rbTree.Root
+	curr := rbTree.root
 	// find position
 	for curr != nil {
 		// update prev
@@ -76,10 +78,10 @@ func (rbTree *RBTree)Get(key MapKey) *MapData {
 			return curr.Value
 		} else if key < curr.Key {
 			// goto left
-			curr = curr.Left
+			curr = curr.left
 		} else {
 			// goto right
-			curr = curr.Right
+			curr = curr.right
 		}
 	}
 	return nil
@@ -88,17 +90,17 @@ func (rbTree *RBTree)Get(key MapKey) *MapData {
 // Delete method on RB-Tree with a key
 func (rbTree *RBTree)Delete(key MapKey) *MapData {
 	// curr view tree node
-	curr := rbTree.Root
+	curr := rbTree.root
 	// find insert position
 	for curr != nil {
 		if key == curr.Key {
 			return rbTree.delete(curr)
 		} else if key < curr.Key {
 			// goto left
-			curr = curr.Left
+			curr = curr.left
 		} else {
 			// goto right
-			curr = curr.Right
+			curr = curr.right
 		}
 	}
 	return nil
@@ -106,38 +108,38 @@ func (rbTree *RBTree)Delete(key MapKey) *MapData {
 
 // insert a node into tree
 // after insert must there must be a reshape operate
-func (rbTree *RBTree)insert(curr *Node, prev *Node, key MapKey, value *MapData) {
+func (rbTree *RBTree)insert(curr *treeNode, prev *treeNode, key MapKey, value *MapData) {
 	// replace value
 	if curr != nil {
 		curr.Value = value
 		return
 	}
 	// new node
-	var node = &Node{
-		Left:	nil,
-		Right: 	nil,
-		Key:	key,
-		Value: 	value,
+	var node = &treeNode{
+		left:  nil,
+		right: nil,
+		Key:   key,
+		Value: value,
 	}
 	if curr == prev {
 		// insert root node
-		node.Father = nil
-		rbTree.Root = node
-		rbTree.MLeft = node
-		rbTree.MRight = node
+		node.father = nil
+		rbTree.root = node
+		rbTree.mLeft = node
+		rbTree.mRight = node
 	} else if key < prev.Key {
 		// insert prev's left
-		prev.Left = node
-		node.Father = prev
-		if prev == rbTree.MLeft {
-			rbTree.MLeft = node
+		prev.left = node
+		node.father = prev
+		if prev == rbTree.mLeft {
+			rbTree.mLeft = node
 		}
 	} else {
 		// insert prev's right
-		prev.Right = node
-		node.Father = prev
-		if prev == rbTree.MRight {
-			rbTree.MRight = node
+		prev.right = node
+		node.father = prev
+		if prev == rbTree.mRight {
+			rbTree.mRight = node
 		}
 	}
 	rbTree.Size++
@@ -146,85 +148,84 @@ func (rbTree *RBTree)insert(curr *Node, prev *Node, key MapKey, value *MapData) 
 
 // delete a node in tree with a point to node
 // after delete must there must be a reshape operate
-func (rbTree *RBTree)delete(curr *Node) *MapData {
+func (rbTree *RBTree)delete(curr *treeNode) *MapData {
 	// get node's father and left, right child
-	father := curr.Father
-	left := curr.Left
-	right := curr.Right
+	father := curr.father
+	left := curr.left
+	right := curr.right
 	// curr is a leaf node
 	// just delete it
 	if left == nil && right == nil {
-		if curr == father.Left {
-			if curr == rbTree.MLeft {
-				rbTree.MLeft = father
+		if curr == father.left {
+			if curr == rbTree.mLeft {
+				rbTree.mLeft = father
 			}
-			father.Left = nil
+			father.left = nil
 		} else {
-			if curr == rbTree.MRight {
-				rbTree.MRight = father
+			if curr == rbTree.mRight {
+				rbTree.mRight = father
 			}
-			father.Right = nil
+			father.right = nil
 		}
 	} else {
 		// curr's left or right child is nil
 		// so we can just use curr's another child to fill the empty of curr's father
 		if left == nil {
 			// update rbtree
-			// curr cannot be MRight because curr's right child is not nil
-			if curr == rbTree.MLeft {
-				rbTree.MLeft = mostLeftChild(right)
+			// curr cannot be mRight because curr's right child is not nil
+			if curr == rbTree.mLeft {
+				rbTree.mLeft = mostLeftChild(right)
 			}
 			// move
-			if curr == rbTree.Root {
+			right.father = father
+			if curr == rbTree.root {
 				// root node
-				rbTree.Root = right
-				right.Father = nil
-			} else if curr == father.Left {
+				rbTree.root = right
+			} else if curr == father.left {
 				// curr is father's left child
-				father.Left = right
-				right.Father = father
+				father.left = right
 			} else {
 				// curr is father's right child
-				father.Right = right
-				right.Father = father
+				father.right = right
 			}
 		} else if right == nil {
 			// update rbtree
-			// curr cannot be MLeft because curr's left child is not nil
-			if curr == rbTree.MRight {
-				rbTree.MRight = mostRightChild(left)
+			// curr cannot be mLeft because curr's left child is not nil
+			if curr == rbTree.mRight {
+				rbTree.mRight = mostRightChild(left)
 			}
-			if curr == rbTree.Root {
+			left.father = father
+			if curr == rbTree.root {
 				// root node
-				rbTree.Root = left
-				right.Father = nil
-			} else if curr == father.Left {
+				rbTree.root = left
+			} else if curr == father.left {
 				// curr is father's left child
-				father.Left = left
-				right.Father = father
+				father.left = left
 			} else {
 				// curr is father's right child
-				father.Right = left
-				right.Father = father
+				father.right = left
 			}
 		} else {
 			// left and right child all not nil
 			// move left to right's most-left child's left
 			var mright = mostLeftChild(right)
-			mright.Left = left
-			left.Father = mright
+			mright.left = left
+			left.father = mright
 			// connect right to father
-			right.Father = father
-			if curr == father.Left {
+			right.father = father
+			if curr == rbTree.root {
+				// root node
+				rbTree.root = right
+			} else if curr == father.left {
 				// curr is father's left child
-				father.Left = right
+				father.left = right
 			} else {
 				// curr is father's right child
-				father.Right = right
+				father.right = right
 			}
 			// update rbtree
-			rbTree.MLeft = mostLeftChild(rbTree.Root)
-			rbTree.MRight = mostRightChild(rbTree.Root)
+			rbTree.mLeft = mostLeftChild(rbTree.root)
+			rbTree.mRight = mostRightChild(rbTree.root)
 		}
 	}
 	rbTree.Size --
@@ -234,24 +235,24 @@ func (rbTree *RBTree)delete(curr *Node) *MapData {
 }
 
 // reshape after insert node X
-func (rbTree *RBTree)insertReshape(X *Node) {
+func (rbTree *RBTree)insertReshape(X *treeNode) {
 	X.color = RED
 	// X not root && X is red and his father is red too
-	for X != rbTree.Root && X.Father.color == RED {
-		if X.Father == X.Father.Father.Left {
+	for X != rbTree.root && X.father.color == RED {
+		if X.father == X.father.father.left {
 			//      FF          FF
 			//     /  \        /  \
 			//    F    Y  or  F    Y
 			//   /             \
 			//  X               X
 			// Y is FF's right child
-			var Y = X.Father.Father.Right
+			var Y = X.father.father.right
 			// Y is not nil and red
 			if Y != nil && Y.color == RED {
-				X.Father.color = BLACK
+				X.father.color = BLACK
 				Y.color = BLACK
-				X.Father.Father.color = RED
-				X = X.Father.Father
+				X.father.father.color = RED
+				X = X.father.father
 			} else {
 				//    FF
 				//   /  \
@@ -259,9 +260,9 @@ func (rbTree *RBTree)insertReshape(X *Node) {
 				//   \
 				//    X
 				// X is F's right child
-				if X == X.Father.Right {
+				if X == X.father.right {
 					// rotate left with pivot X's father
-					X = X.Father
+					X = X.father
 					rbTree.rotateLeft(X)
 				}
 				//      FF
@@ -271,10 +272,10 @@ func (rbTree *RBTree)insertReshape(X *Node) {
 				//  X
 				// X is F's right child
 				// change color
-				X.Father.color = BLACK
-				X.Father.Father.color = RED
+				X.father.color = BLACK
+				X.father.father.color = RED
 				// rotate right with pivot X's grandfather
-				rbTree.rotateRight(X.Father.Father)
+				rbTree.rotateRight(X.father.father)
 			}
 		} else {
 			//      FF          FF
@@ -283,13 +284,13 @@ func (rbTree *RBTree)insertReshape(X *Node) {
 			//        /             \
 			//       X               X
 			// Y is FF's left child
-			var Y = X.Father.Father.Left
+			var Y = X.father.father.left
 			// Y is not nil and red
 			if Y != nil && Y.color == RED {
-				X.Father.color = BLACK
+				X.father.color = BLACK
 				Y.color = BLACK
-				X.Father.Father.color = RED
-				X = X.Father.Father
+				X.father.father.color = RED
+				X = X.father.father
 			} else {
 				//       FF
 				//      /  \
@@ -297,9 +298,9 @@ func (rbTree *RBTree)insertReshape(X *Node) {
 				//         /
 				//        X
 				// X is F's left child
-				if X == X.Father.Left {
+				if X == X.father.left {
 					// rotate right with pivot X's father
-					X = X.Father
+					X = X.father
 					rbTree.rotateRight(X)
 				}
 				//      FF
@@ -309,18 +310,18 @@ func (rbTree *RBTree)insertReshape(X *Node) {
 				//           X
 				// X is F's right child
 				// change color
-				X.Father.color = BLACK
-				X.Father.Father.color = RED
+				X.father.color = BLACK
+				X.father.father.color = RED
 				// rotate left with pivot X's grandfather
-				rbTree.rotateLeft(X.Father.Father)
+				rbTree.rotateLeft(X.father.father)
 			}
 		}
 	}
 	// root is black
-	rbTree.Root.color = BLACK
+	rbTree.root.color = BLACK
 }
 
-// Left Rotate with pivot X
+// left Rotate with pivot X
 //
 // 	    R                  R
 //      |                  |
@@ -331,31 +332,31 @@ func (rbTree *RBTree)insertReshape(X *Node) {
 //      W   Z              W
 //
 // make tree X to a balance binary tree
-func (rbTree *RBTree)rotateLeft(X *Node) {
-	var Y = X.Right
+func (rbTree *RBTree)rotateLeft(X *treeNode) {
+	var Y = X.right
 	// move W to X's right child
-	X.Right = Y.Left
-	if Y.Left != nil {
-		Y.Left.Father = X
+	X.right = Y.left
+	if Y.left != nil {
+		Y.left.father = X
 	}
 	// move Y to X's father's child
-	Y.Father = X.Father
-	if X == rbTree.Root {
+	Y.father = X.father
+	if X == rbTree.root {
 		// X is root
-		rbTree.Root = Y
-	} else if X == X.Father.Left {
+		rbTree.root = Y
+	} else if X == X.father.left {
 		// X is father's left child
-		X.Father.Left = Y
+		X.father.left = Y
 	} else {
 		// X is father's right child
-		X.Father.Right = Y
+		X.father.right = Y
 	}
 	// move X to Y's left child
-	Y.Left = X
-	X.Father = Y
+	Y.left = X
+	X.father = Y
 }
 
-// Right Rotate with pivot X
+// right Rotate with pivot X
 //
 // 	     R                R
 //       |                |
@@ -366,50 +367,50 @@ func (rbTree *RBTree)rotateLeft(X *Node) {
 //   Z   W                W
 //
 // make tree X to a balance binary tree
-func (rbTree *RBTree)rotateRight(X *Node) {
-	var Y = X.Left
+func (rbTree *RBTree)rotateRight(X *treeNode) {
+	var Y = X.left
 	// move W to X's left child
-	X.Left = Y.Right
-	if Y.Right != nil {
-		Y.Right.Father = X
+	X.left = Y.right
+	if Y.right != nil {
+		Y.right.father = X
 	}
 	// move Y to X's father's child
-	Y.Father = X.Father
-	if X == rbTree.Root {
+	Y.father = X.father
+	if X == rbTree.root {
 		// X is root
-	 	rbTree.Root = Y
-	} else if X == X.Father.Right {
+	 	rbTree.root = Y
+	} else if X == X.father.right {
 		// X is father's left child
-		X.Father.Right = Y
+		X.father.right = Y
 	} else {
 		// X is father's right child
-		X.Father.Left = Y
+		X.father.left = Y
 	}
 	// move X to Y's right child
-	Y.Right = X
-	X.Father = Y
+	Y.right = X
+	X.father = Y
 }
 
 // get most left child
-func mostLeftChild(root *Node) *Node {
+func mostLeftChild(root *treeNode) *treeNode {
 	if root == nil {
 		return root
 	}
 	p := root
-	for p.Left != nil {
-		p = p.Left
+	for p.left != nil {
+		p = p.left
 	}
 	return p
 }
 
 // get most right child
-func mostRightChild(root *Node) *Node {
+func mostRightChild(root *treeNode) *treeNode {
 	if root == nil {
 		return root
 	}
 	p := root
-	for p.Right != nil {
-		p = p.Right
+	for p.right != nil {
+		p = p.right
 	}
 	return p
 }
