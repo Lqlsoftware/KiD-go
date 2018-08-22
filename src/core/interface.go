@@ -1,9 +1,7 @@
 package core
 
-type KiDInterface struct {}
-
-func (KiD *KiDInterface)Get(key string) {}
-
-func (KiD *KiDInterface)Put(key string, value string) {}
-
-func (KiD *KiDInterface)Delete(key string) {}
+type KiDInterface interface {
+	Get(key string) (value string)
+	Put(key string, value string)
+	Delete(key string) (value string)
+}
