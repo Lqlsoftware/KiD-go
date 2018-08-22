@@ -9,20 +9,20 @@ const (
 
 // Red-Black Binary Tree
 type RBTree struct {
-	root   *RBtree
-	mLeft  *RBtree
-	mRight *RBtree
+	root   *treeNode
+	mLeft  *treeNode
+	mRight *treeNode
 	// attributes
 	Size   uint32
 	Index  uint8
 }
 
-// Red-Black Binary Tree RBtree
-type RBtree struct {
+// Red-Black Binary Tree treeNode
+type treeNode struct {
 	color  COLOR
-	father *RBtree
-	left   *RBtree
-	right  *RBtree
+	father *treeNode
+	left   *treeNode
+	right  *treeNode
 	// key & data
 	Key    MapKey
 	Value  *MapData
@@ -108,14 +108,14 @@ func (rbTree *RBTree)Delete(key MapKey) *MapData {
 
 // insert a node into tree
 // after insert must there must be a reshape operate
-func (rbTree *RBTree)insert(curr *RBtree, prev *RBtree, key MapKey, value *MapData) {
+func (rbTree *RBTree)insert(curr *treeNode, prev *treeNode, key MapKey, value *MapData) {
 	// replace value
 	if curr != nil {
 		curr.Value = value
 		return
 	}
 	// new node
-	var node = &RBtree{
+	var node = &treeNode{
 		left:  nil,
 		right: nil,
 		Key:   key,
@@ -148,94 +148,173 @@ func (rbTree *RBTree)insert(curr *RBtree, prev *RBtree, key MapKey, value *MapDa
 
 // delete a node in tree with a point to node
 // after delete must there must be a reshape operate
-func (rbTree *RBTree)delete(curr *RBtree) *MapData {
+func (rbTree *RBTree)delete(curr *treeNode) *MapData {
+	var value = curr.Value
+	// Both left child & right child is not nil
+	//     move right's most-left child(successor) to curr
+	//     and change curr to mright to make problem easy
+	if curr.left != nil && curr.right != nil {
+		var mright = mostLeftChild(curr.right)
+		curr.Value = mright.Value
+		curr.Key = mright.Key
+		curr = mright
+	}
 	// get node's father and left, right child
-	father := curr.father
-	left := curr.left
-	right := curr.right
-	// curr is a leaf node
-	// just delete it
-	if left == nil && right == nil {
-		if curr == father.left {
-			if curr == rbTree.mLeft {
-				rbTree.mLeft = father
-			}
-			father.left = nil
-		} else {
-			if curr == rbTree.mRight {
-				rbTree.mRight = father
-			}
-			father.right = nil
+	var father, left, right = curr.father, curr.left, curr.right
+	// replace node
+	var replace *treeNode = nil
+	if left != nil {
+		// curr's left child is nil
+		//     so we can just use curr's right child to fill the empty of curr's father
+		replace = left
+		replace.father = father
+		// update rbtree
+		// curr cannot be mLeft because curr's left child is not nil
+		if curr == rbTree.mRight {
+			rbTree.mRight = mostRightChild(left)
+		}
+	} else if right != nil {
+		// curr's right child is nil
+		//     so we can just use curr's left child to fill the empty of curr's father
+		replace = right
+		replace.father = father
+		// update rbtree
+		// curr cannot be mRight because curr's right child is not nil
+		if curr == rbTree.mLeft {
+			rbTree.mLeft = mostLeftChild(right)
 		}
 	} else {
-		// curr's left or right child is nil
-		// so we can just use curr's another child to fill the empty of curr's father
-		if left == nil {
-			// update rbtree
-			// curr cannot be mRight because curr's right child is not nil
-			if curr == rbTree.mLeft {
-				rbTree.mLeft = mostLeftChild(right)
-			}
-			// move
-			right.father = father
-			if curr == rbTree.root {
-				// root node
-				rbTree.root = right
-			} else if curr == father.left {
-				// curr is father's left child
-				father.left = right
-			} else {
-				// curr is father's right child
-				father.right = right
-			}
-		} else if right == nil {
-			// update rbtree
-			// curr cannot be mLeft because curr's left child is not nil
-			if curr == rbTree.mRight {
-				rbTree.mRight = mostRightChild(left)
-			}
-			left.father = father
-			if curr == rbTree.root {
-				// root node
-				rbTree.root = left
-			} else if curr == father.left {
-				// curr is father's left child
-				father.left = left
-			} else {
-				// curr is father's right child
-				father.right = left
-			}
-		} else {
-			// left and right child all not nil
-			// move left to right's most-left child's left
-			var mright = mostLeftChild(right)
-			mright.left = left
-			left.father = mright
-			// connect right to father
-			right.father = father
-			if curr == rbTree.root {
-				// root node
-				rbTree.root = right
-			} else if curr == father.left {
-				// curr is father's left child
-				father.left = right
-			} else {
-				// curr is father's right child
-				father.right = right
-			}
-			// update rbtree
-			rbTree.mLeft = mostLeftChild(rbTree.root)
-			rbTree.mRight = mostRightChild(rbTree.root)
+		// curr is a leaf curr
+		// update rbtree
+		if curr == rbTree.root {
+			rbTree.mLeft = nil
+			rbTree.mRight = nil
+		} else if curr == father.left && curr == rbTree.mLeft {
+			rbTree.mLeft = father
+		} else if curr == father.right && curr == rbTree.mRight {
+			rbTree.mRight = father
 		}
 	}
+	// change father's attribute
+	switch curr {
+	case rbTree.root:	rbTree.root = replace
+	case father.left: 	father.left = replace
+	case father.right: 	father.right = replace
+	}
 	rbTree.Size --
-	// TODO reshape
+	// reshape
+	if curr.color == BLACK {
+		if replace != nil {
+			rbTree.deleteReshape(replace)
+		} else {
+			rbTree.deleteReshape(curr)
+		}
+	}
+	return value
+}
 
-	return curr.Value
+// reshape after delete node X
+// There are 4 probably situation:
+// 1. X's brother is RED
+//    Step 1: change X's father to RED, brother to BLACK
+//    Step 2: rotateLeft with X's father as pivot
+//
+//         |                              |
+//       1 ●                            3 ●
+//        / \                            / \
+// X-> 2 ●   ○ 3 <-brother    =>      1 ○   ● 5
+//          / \                        / \
+//       4 ●   ● 5              X-> 2 ●   ● 4
+//
+//
+// 2. X's brother is BLACK and brother's two child is BLACK
+//    Step 1: change brother to RED
+//    Step 2: set X point to X's father
+//
+//         |                              |
+//       1 ○                        X-> 1 ○
+//        / \                            / \
+// X-> 2 ●   ● 3 <-brother    =>      2 ●   ○ 3
+//          / \                            / \
+//       4 ●   ● 5                      4 ●   ● 5
+//
+//
+// 3. X's brother is BLACK and brother's left child is RED, right child is BLACK
+//    Step 1: change brother to RED, brother's left child to BLACK
+//    Step 2: rotateRight with brother as pivot
+//
+//         |                             |
+//       1 ○                           1 ○
+//        / \                           / \
+// X-> 2 ●   ● 3 <-brother    => X-> 2 ●   ● 4
+//          / \                             \
+//       4 ○   ● 5                           ○ 3
+//                                            \
+//                                             ● 5
+//
+//
+// 4. X's brother is BLACK and brother's right child is RED
+//    Step 1: change X's father to BLACK, brother to RED, brother's right child to BLACK
+//    Step 2: rotateLeft with X's father as pivot
+//
+//         |                              |
+//       1 ○                            3 ○
+//        / \                            / \
+// X-> 2 ●   ● 3 <-brother    =>      1 ●   ● 5
+//          / \                        / \
+//       4 ○   ○ 5                  2 ●   ○ 4
+//
+//
+func (rbTree *RBTree)deleteReshape(X *treeNode) {
+	for X != rbTree.root {
+		if X == X.father.left && X.father.right != nil {
+			var brother = X.father.right
+			if brother.color == RED {
+				X.father.color = RED
+				brother.color = BLACK
+				rbTree.rotateLeft(X.father)
+			} else if brother.left != nil && brother.left.color == BLACK && brother.right != nil && brother.right.color == BLACK {
+				brother.color = RED
+				X = X.father
+			} else if brother.left != nil && brother.left.color == RED && brother.right != nil && brother.right.color == BLACK {
+				brother.color = RED
+				brother.left.color = BLACK
+				rbTree.rotateRight(brother)
+			} else if brother.right != nil && brother.right.color == RED {
+				brother.father.color = BLACK
+				brother.color = RED
+				brother.right.color = BLACK
+				rbTree.rotateLeft(brother.father)
+				break
+			}
+		} else if X == X.father.right && X.father.left != nil {
+			var brother = X.father.left
+			if brother.color == RED {
+				brother.color = BLACK
+				X.father.color = RED
+				rbTree.rotateRight(X.father)
+			} else if brother.left != nil && brother.left.color == BLACK && brother.right != nil && brother.right.color == BLACK {
+				brother.color = RED
+				X = X.father
+			} else if brother.left != nil && brother.left.color == BLACK && brother.right != nil && brother.right.color == RED {
+				brother.color = RED
+				brother.right.color = BLACK
+				rbTree.rotateLeft(brother)
+			} else if brother.left != nil && brother.left.color == RED {
+				brother.color = RED
+				brother.left.color = BLACK
+				brother.father.color = BLACK
+				rbTree.rotateRight(brother.father)
+				X = rbTree.root
+			}
+		} else {
+			break
+		}
+	}
 }
 
 // reshape after insert node X
-func (rbTree *RBTree)insertReshape(X *RBtree) {
+func (rbTree *RBTree)insertReshape(X *treeNode) {
 	X.color = RED
 	// X not root && X is red and his father is red too
 	for X != rbTree.root && X.father.color == RED {
@@ -332,7 +411,7 @@ func (rbTree *RBTree)insertReshape(X *RBtree) {
 //      W   Z              W
 //
 // make tree X to a balance binary tree
-func (rbTree *RBTree)rotateLeft(X *RBtree) {
+func (rbTree *RBTree)rotateLeft(X *treeNode) {
 	var Y = X.right
 	// move W to X's right child
 	X.right = Y.left
@@ -367,7 +446,7 @@ func (rbTree *RBTree)rotateLeft(X *RBtree) {
 //   Z   W                W
 //
 // make tree X to a balance binary tree
-func (rbTree *RBTree)rotateRight(X *RBtree) {
+func (rbTree *RBTree)rotateRight(X *treeNode) {
 	var Y = X.left
 	// move W to X's left child
 	X.left = Y.right
@@ -392,7 +471,7 @@ func (rbTree *RBTree)rotateRight(X *RBtree) {
 }
 
 // get most left child
-func mostLeftChild(root *RBtree) *RBtree {
+func mostLeftChild(root *treeNode) *treeNode {
 	if root == nil {
 		return root
 	}
@@ -404,7 +483,7 @@ func mostLeftChild(root *RBtree) *RBtree {
 }
 
 // get most right child
-func mostRightChild(root *RBtree) *RBtree {
+func mostRightChild(root *treeNode) *treeNode {
 	if root == nil {
 		return root
 	}
