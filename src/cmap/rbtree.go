@@ -9,20 +9,20 @@ const (
 
 // Red-Black Binary Tree
 type RBTree struct {
-	root   *treeNode
-	mLeft  *treeNode
-	mRight *treeNode
+	root   *RBtree
+	mLeft  *RBtree
+	mRight *RBtree
 	// attributes
 	Size   uint32
 	Index  uint8
 }
 
-// Red-Black Binary Tree treeNode
-type treeNode struct {
+// Red-Black Binary Tree RBtree
+type RBtree struct {
 	color  COLOR
-	father *treeNode
-	left   *treeNode
-	right  *treeNode
+	father *RBtree
+	left   *RBtree
+	right  *RBtree
 	// key & data
 	Key    MapKey
 	Value  *MapData
@@ -108,14 +108,14 @@ func (rbTree *RBTree)Delete(key MapKey) *MapData {
 
 // insert a node into tree
 // after insert must there must be a reshape operate
-func (rbTree *RBTree)insert(curr *treeNode, prev *treeNode, key MapKey, value *MapData) {
+func (rbTree *RBTree)insert(curr *RBtree, prev *RBtree, key MapKey, value *MapData) {
 	// replace value
 	if curr != nil {
 		curr.Value = value
 		return
 	}
 	// new node
-	var node = &treeNode{
+	var node = &RBtree{
 		left:  nil,
 		right: nil,
 		Key:   key,
@@ -148,7 +148,7 @@ func (rbTree *RBTree)insert(curr *treeNode, prev *treeNode, key MapKey, value *M
 
 // delete a node in tree with a point to node
 // after delete must there must be a reshape operate
-func (rbTree *RBTree)delete(curr *treeNode) *MapData {
+func (rbTree *RBTree)delete(curr *RBtree) *MapData {
 	// get node's father and left, right child
 	father := curr.father
 	left := curr.left
@@ -235,7 +235,7 @@ func (rbTree *RBTree)delete(curr *treeNode) *MapData {
 }
 
 // reshape after insert node X
-func (rbTree *RBTree)insertReshape(X *treeNode) {
+func (rbTree *RBTree)insertReshape(X *RBtree) {
 	X.color = RED
 	// X not root && X is red and his father is red too
 	for X != rbTree.root && X.father.color == RED {
@@ -332,7 +332,7 @@ func (rbTree *RBTree)insertReshape(X *treeNode) {
 //      W   Z              W
 //
 // make tree X to a balance binary tree
-func (rbTree *RBTree)rotateLeft(X *treeNode) {
+func (rbTree *RBTree)rotateLeft(X *RBtree) {
 	var Y = X.right
 	// move W to X's right child
 	X.right = Y.left
@@ -367,7 +367,7 @@ func (rbTree *RBTree)rotateLeft(X *treeNode) {
 //   Z   W                W
 //
 // make tree X to a balance binary tree
-func (rbTree *RBTree)rotateRight(X *treeNode) {
+func (rbTree *RBTree)rotateRight(X *RBtree) {
 	var Y = X.left
 	// move W to X's left child
 	X.left = Y.right
@@ -392,7 +392,7 @@ func (rbTree *RBTree)rotateRight(X *treeNode) {
 }
 
 // get most left child
-func mostLeftChild(root *treeNode) *treeNode {
+func mostLeftChild(root *RBtree) *RBtree {
 	if root == nil {
 		return root
 	}
@@ -404,7 +404,7 @@ func mostLeftChild(root *treeNode) *treeNode {
 }
 
 // get most right child
-func mostRightChild(root *treeNode) *treeNode {
+func mostRightChild(root *RBtree) *RBtree {
 	if root == nil {
 		return root
 	}
