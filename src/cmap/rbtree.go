@@ -25,7 +25,7 @@ type treeNode struct {
 	right  *treeNode
 	// key & data
 	Key    MapKey
-	Value  *MapData
+	Value  *MapValue
 }
 
 // Generate a new Tree
@@ -41,7 +41,7 @@ func NewTree(index uint8) *RBTree {
 }
 
 // Put method on RB-Tree with a key and value
-func (rbTree *RBTree)Put(key MapKey, value *MapData) {
+func (rbTree *RBTree)Put(key MapKey, value *MapValue) {
 	// curr view tree node
 	curr := rbTree.root
 	// upstairs tree node
@@ -67,7 +67,7 @@ func (rbTree *RBTree)Put(key MapKey, value *MapData) {
 }
 
 // Get method on RB-Tree with a key
-func (rbTree *RBTree)Get(key MapKey) *MapData {
+func (rbTree *RBTree)Get(key MapKey) *MapValue {
 	// curr view tree node
 	curr := rbTree.root
 	// find position
@@ -88,7 +88,7 @@ func (rbTree *RBTree)Get(key MapKey) *MapData {
 }
 
 // Delete method on RB-Tree with a key
-func (rbTree *RBTree)Delete(key MapKey) *MapData {
+func (rbTree *RBTree)Delete(key MapKey) *MapValue {
 	// curr view tree node
 	curr := rbTree.root
 	// find insert position
@@ -108,7 +108,7 @@ func (rbTree *RBTree)Delete(key MapKey) *MapData {
 
 // insert a node into tree
 // after insert must there must be a reshape operate
-func (rbTree *RBTree)insert(curr *treeNode, prev *treeNode, key MapKey, value *MapData) {
+func (rbTree *RBTree)insert(curr *treeNode, prev *treeNode, key MapKey, value *MapValue) {
 	// replace value
 	if curr != nil {
 		curr.Value = value
@@ -148,7 +148,7 @@ func (rbTree *RBTree)insert(curr *treeNode, prev *treeNode, key MapKey, value *M
 
 // delete a node in tree with a point to node
 // after delete must there must be a reshape operate
-func (rbTree *RBTree)delete(curr *treeNode) *MapData {
+func (rbTree *RBTree)delete(curr *treeNode) *MapValue {
 	var value = curr.Value
 	// Both left child & right child is not nil
 	//     move right's most-left child(successor) to curr
