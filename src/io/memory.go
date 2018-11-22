@@ -7,7 +7,7 @@ import (
 	"github.com/Lqlsoftware/KiD/src/conf"
 )
 
-type Memory struct {
+type KidMemory struct {
 	RWMem 		*map[Address][]byte
 	RMem		*list.List
 	RWMemlock	*sync.RWMutex
@@ -16,57 +16,63 @@ type Memory struct {
 }
 
 // Initial cache with a sized RW map and a RW locker
-func (memory *Memory)Init(config *conf.KiDConfig) {
-	memory.size = config.BUFFER_MAP_INIT_SIZE
+func (m *KidMemory)Init(config *conf.KiDConfig) {
+	m.size = config.BUFFER_MAP_INIT_SIZE
 	RWMem := make(map[Address][]byte,  config.BUFFER_MAP_INIT_SIZE)
-	memory.RWMem = &RWMem
-	memory.RMem = list.New()
-	memory.RWMemlock = new(sync.RWMutex)
-	memory.RMemlock = new(sync.RWMutex)
+	m.RWMem = &RWMem
+	m.RMem = list.New()
+	m.RWMemlock = new(sync.RWMutex)
+	m.RMemlock = new(sync.RWMutex)
 }
 
 // Write data to cache
-func (memory *Memory)Write(data []byte) (address Address, size Size) {
+func (m *KidMemory)Write(data []byte) (address Address, size Size) {
 	// TODO get space from space manager => address, size
 
 	// Write to RWMem
 	{
-		memory.RWMemlock.Lock()
+		m.RWMemlock.Lock()
 		// get a new RWMem and Write old one to I/O
-		if uint32(len(*memory.RWMem)) == memory.size {
+		if uint32(len(*m.RWMem)) == m.size {
 			// TODO
 		}
-		(*memory.RWMem)[address] = data
-		memory.RWMemlock.Unlock()
+		(*m.RWMem)[address] = data
+		m.RWMemlock.Unlock()
 	}
 	return 0,0
 }
 
 // Read data from cache
-func (memory *Memory)Read(address Address, size Size) (data []byte) {
+func (m *KidMemory)Read(address Address, size Size) (data []byte) {
 	var value []byte
 	var bufferHited, useRMem = false, false
 	// Read from RWMem
 	{
-		memory.RWMemlock.RLock()
+		m.RWMemlock.RLock()
 		// read RWMem
-		value, bufferHited = (*memory.RWMem)[address]
+		value, bufferHited = (*m.RWMem)[address]
 		// RWMem missed, try reading from RMem
-		useRMem = !bufferHited && memory.RMem != nil
-		memory.RWMemlock.RUnlock()
+		useRMem = !bufferHited && m.RMem != nil
+		m.RWMemlock.RUnlock()
 	}
 	if useRMem {
-		memory.RMemlock.RLock()
-		var RMap *map[Address][]byte
-		for m := memory.RMem.Back();m != memory.RMem.Front().Prev() && !bufferHited;m = m.Prev() {
-			RMap = m.Value.(*map[Address][]byte)
-			value, bufferHited = (*RMap)[address]
+		{
+			m.RMemlock.RLock()
+			var RMap *map[Address][]byte
+			for m := m.RMem.Back(); m != m.RMem.Front().Prev() && !bufferHited; m = m.Prev() {
+				RMap = m.Value.(*map[Address][]byte)
+				value, bufferHited = (*RMap)[address]
+			}
+			m.RMemlock.RUnlock()
 		}
-		memory.RMemlock.RUnlock()
 	}
 	// all missed. try i/o
 	if !bufferHited {
 		// TODO
 	}
 	return value
+}
+
+func (m *KidMemory)Delete(address Address, size Size) {
+
 }

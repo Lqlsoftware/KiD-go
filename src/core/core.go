@@ -8,7 +8,8 @@ import (
 
 type KiDCore struct {
 	cMap 	*cmap.ConcurrentMap
-	memory 	*io.Memory
+	memory 	*io.KidMemory
+
 }
 
 func (KiD *KiDCore)Init(config *conf.KiDConfig) {
@@ -19,32 +20,52 @@ func (KiD *KiDCore)Init(config *conf.KiDConfig) {
 	KiD.memory.Init(config)
 }
 
-func (KiD *KiDCore)Get(key string) (value string) {
+func (KiD *KiDCore)Get(key string) (value string, err error) {
 	// fetch from cmap
 	var keyHashed cmap.MapKey = BKDRHash(key)
 	var mapValue *cmap.MapValue = KiD.cMap.Get(keyHashed)
+	// Not found
 	if mapValue == nil {
-		// TODO
+		// TODO add error ERR_NOT_FOUND
+		return "", nil
 	}
 	// fetch from I/O
+	// TODO add error ERR_READ_IO
 	var rawValue []byte = KiD.memory.Read(mapValue.Address, mapValue.Length)
-	return string(rawValue)
+	return string(rawValue), nil
 }
 
 func (KiD *KiDCore)Put(key string, value string) (err error) {
 	// fetch from cmap
 	var keyHashed cmap.MapKey = BKDRHash(key)
-	var mapValue *cmap.MapValue = KiD.cMap.Get(keyHashed)
-	if mapValue != nil {
-		// TODO
-	}
+	var oldValue *cmap.MapValue = KiD.cMap.Get(keyHashed)
 	// write to I/O
-	var address, size = KiD.memory.Write()
-
+	// TODO add error ERR_WRITE_IO
+	var address, size = KiD.memory.Write([]byte(value))
+	var mapValue = &cmap.MapValue{
+		Address:address,
+		Length:size,
+	}
+	// TODO add error ERR_WRITE_CMAP
+	KiD.cMap.Put(keyHashed, mapValue)
+	// overwrite
+	if oldValue != nil {
+		KiD.memory.Delete(oldValue.Address, oldValue.Length)
+	}
+	return nil
 }
 
-func (KiD *KiDCore)Delete(key string) (value string) {
-
+func (KiD *KiDCore)Delete(key string) (value string, err error) {
+	// fetch from cmap
+	var keyHashed cmap.MapKey = BKDRHash(key)
+	var mapValue *cmap.MapValue = KiD.cMap.Get(keyHashed)
+	// Not found
+	if mapValue == nil {
+		// TODO add error ERR_NOT_FOUND
+		return "", nil
+	}
+	KiD.cMap.Delete(keyHashed)
+	KiD.memory.Delete(mapValue.Address, mapValue.Length)
 }
 
 func BKDRHash(str string) (key cmap.MapKey) {
