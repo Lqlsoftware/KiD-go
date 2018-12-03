@@ -45,29 +45,29 @@ func (m *KidMemory)Write(data []byte) (address Address, size Size) {
 // Read data from cache
 func (m *KidMemory)Read(address Address, size Size) (data []byte) {
 	var value []byte
-	var bufferHited, useRMem = false, false
+	var bufferHit, useRMem = false, false
 	// Read from RWMem
 	{
 		m.RWMemlock.RLock()
 		// read RWMem
-		value, bufferHited = (*m.RWMem)[address]
+		value, bufferHit = (*m.RWMem)[address]
 		// RWMem missed, try reading from RMem
-		useRMem = !bufferHited && m.RMem != nil
+		useRMem = !bufferHit && m.RMem != nil
 		m.RWMemlock.RUnlock()
 	}
 	if useRMem {
 		{
 			m.RMemlock.RLock()
 			var RMap *map[Address][]byte
-			for m := m.RMem.Back(); m != m.RMem.Front().Prev() && !bufferHited; m = m.Prev() {
-				RMap = m.Value.(*map[Address][]byte)
-				value, bufferHited = (*RMap)[address]
+			for readMem := m.RMem.Back(); readMem != m.RMem.Front().Prev() && !bufferHit; readMem = readMem.Prev() {
+				RMap = readMem.Value.(*map[Address][]byte)
+				value, bufferHit = (*RMap)[address]
 			}
 			m.RMemlock.RUnlock()
 		}
 	}
 	// all missed. try i/o
-	if !bufferHited {
+	if !bufferHit {
 		// TODO
 	}
 	return value
